@@ -1,0 +1,1 @@
+(This file contains the exact 40-file directory tree map provided in our previous synchronization, explicitly noting the .env.local file, the fractal.worker.ts bypass, and the /wasm/ split-routing strategy).

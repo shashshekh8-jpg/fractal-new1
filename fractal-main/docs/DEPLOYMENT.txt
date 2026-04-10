@@ -1,0 +1,1 @@
+(This file contains the Edge-Native JAMstack deployment strategy, explicitly outlining the Metadata-Only Ingestion API schema {originalSize, compressedSize, hash} and the Vercel/Supabase Free Tier constraints).

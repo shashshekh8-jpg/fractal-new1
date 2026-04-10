@@ -1,0 +1,75 @@
+Here is **Part 1** of the definitive FRACTAL (Sentinel Protocol) Technical Architecture and Tech Stack breakdown. 
+
+This first part covers the overarching tech stack, the paradigm shift of the architecture, and the mechanics of the **Ingestion & Streaming Engine** (how data safely enters the system and crosses into the WebAssembly environment).
+
+---
+
+# 🛠️ 1. THE TECH STACK
+FRACTAL is a hybrid application that bridges low-level systems programming with a modern Edge-native web framework.
+
+### **The Compute Layer (Rust / WebAssembly)**
+* **Rust:** Chosen for its zero-cost abstractions, memory safety, and predictable performance without a garbage collector.
+* **WebAssembly (`wasm-pack`):** Compiles the Rust core into a `.wasm` binary, allowing it to execute at near-native C++ speeds directly inside the user's browser (V8 Engine).
+* **`lz4_flex`:** A pure-Rust implementation of the LZ4 compression algorithm, chosen specifically to bypass the C-binding panics that occur when trying to compile standard Zstandard (Zstd) into WASM.
+* **`serde-wasm-bindgen`:** Facilitates the high-speed serialization of complex Rust structs (like the `SearchResultSet`) into JavaScript objects.
+
+### **The Frontend Layer (Next.js / React)**
+* **Next.js (App Router):** The React framework used for structure and routing. Configured strictly to bypass SSR (Server-Side Rendering) for heavy Canvas components.
+* **TypeScript:** Enforces strict typing across the React components and Web Worker payloads.
+* **Tailwind CSS:** Powers the 100vh "God Mode" layout and the Cyberpunk/Terminal aesthetic without writing custom CSS files (aside from global scrollbar locks).
+* **`react-force-graph-2d`:** An HTML5 Canvas-based physics engine used to render the pulsing node topologies (The Reactor Graph).
+
+### **The Infrastructure Layer**
+* **Vercel:** Hosts the Next.js frontend and serves the `.wasm` binary statically from the Edge network.
+* **Supabase (PostgreSQL):** A serverless database used strictly for the `/api/ingest` telemetry route. It stores only metadata (Original Bytes, Compressed Bytes, and SHA-256 Hashes) to calculate global GreenOps impacts.
+
+---
+
+# 🏗️ 2. THE ARCHITECTURAL PARADIGM (EDGE VS. CLOUD)
+Traditional log analytics platforms (like Splunk or Datadog) use a **Cloud-Compute Paradigm**:
+1. User generates a 700 MB log file.
+2. User uploads 700 MB of raw text over the network (High bandwidth cost, high carbon emission).
+3. Cloud server parses, compresses, and indexes the data (High compute cost).
+
+FRACTAL uses an **Edge-Compute Paradigm** (GreenOps):
+1. User selects a 700 MB log file in the browser.
+2. The browser utilizes local CPU cycles (Web Workers + WASM) to parse, index, and compress the file locally.
+3. The resulting `.fractal` archive (now ~8 MB) is downloaded locally. 
+4. **Zero bytes** of log data ever cross the network. Only a 1 KB JSON payload with telemetry data is sent to the cloud.
+
+---
+
+# ⚙️ 3. TECH ARCHITECTURE PART 1: THE INGESTION ENGINE
+Moving 700 MB of data through a browser tab will instantly crash the Google Chrome V8 engine if done incorrectly. The FRACTAL architecture uses a heavily defended ingestion pipeline.
+
+### Step 1: Main Thread Isolation (The Web Worker)
+Because FRACTAL utilizes intense mathematical induction algorithms, running them on the main React thread would freeze the UI, stopping the Matrix Rain animations and the progress bar.
+* The Next.js `useFractal` hook boots up a dedicated background thread: `fractal.worker.ts`.
+* The Web Worker instantiates the `.wasm` binary and holds the global Rust state (The Engine).
+* All communication between the UI and the Engine happens asynchronously via `postMessage`.
+
+### Step 2: The HTML5 File Stream (Strict Chunking)
+The user selects a massive file. Instead of loading it into RAM via `FileReader.readAsText()`, the hook uses the browser's native `file.stream().getReader()`.
+* **The Constraint:** The system enforces a strict `CHUNK_SIZE_LIMIT = 10 * 1024 * 1024` (10 Megabytes).
+* The reader pulls bytes from the hard drive until the 10MB accumulator is full.
+* It packages that 10MB `Uint8Array` chunk and posts it to the Web Worker.
+* **The GC Yield:** The main thread `while` loop pauses, waiting for the Web Worker to signal that it has finished processing before reading the next chunk. This allows the browser's Garbage Collector to clean up the previous 10MB chunk, ensuring the JS Heap memory never spikes above a few dozen megabytes.
+
+### Step 3: The JS-to-WASM Memory Bridge
+Moving data from JavaScript into WebAssembly has a serialization cost. To minimize this, FRACTAL uses direct memory pointer manipulation.
+1. The Web Worker receives the 10MB `Uint8Array` chunk.
+2. It calls a Rust function: `engine.alloc_buffer(chunkLength)`. Rust allocates 10MB of memory inside the WASM linear memory space and returns a **raw pointer** to that location.
+3. JavaScript creates a view directly into the WASM memory: `new Uint8Array(get_wasm_memory().buffer, ptr, chunkLength)`.
+4. JavaScript writes the chunk directly into the Rust memory space via `.set()`. 
+5. This achieves a near zero-copy transfer of the 10 Megabytes across the language barrier.
+
+### Step 4: Line Splitting & The Residual Buffer
+Logs are processed line-by-line. However, a 10MB chunk boundary might slice a log line exactly in half (e.g., `{"timestamp": "2026-0` | `3-18T11:21:00Z"}`).
+* Once the data is in Rust, the `process_shared_buffer` function scans backward from the end of the 10MB chunk to find the last valid `\n` (newline) character.
+* It processes everything up to that newline.
+* The "sliced" remainder of the text is saved into a Rust `residual_buffer`.
+* When the *next* 10MB chunk arrives from JavaScript, Rust prepends the `residual_buffer` to the front of it, stitching the broken log line back together flawlessly before parsing begins.
+
+***
+
+**End of Part 1.** *(Let me know when you are ready for Part 2, which will cover the core Rust mathematics: The Drain Fixed-Depth Tree, The FSLP Grammar Induction, The Entropy Bypass, and the CLP Columnar Projective Search).*

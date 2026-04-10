@@ -1,0 +1,147 @@
+Here is the exhaustive, pixel-by-pixel, interaction-by-interaction Master UI/UX Specification for the **FRACTAL (Sentinel Protocol)** Edge Dashboard. 
+
+This document covers every component, every CSS state change, and every possible user interaction matrix in the Next.js frontend.
+
+---
+
+# 🎨 1. GLOBAL DESIGN LANGUAGE & TYPOGRAPHY
+The entire application operates strictly in a "God Mode" viewport. There is zero native browser scrolling. 
+
+### **The Semantic Color Palette**
+* **Void (`#020617`):** The deep-space slate background. Serves as the canvas for all components.
+* **Waste (`#FF453A`):** Neon Red. Used strictly for uncompressed data, warnings, memory locks, and raw ingestion metrics.
+* **Intelligence (`#00F3FF`):** Cyan/Electric Blue. Used for the system UI, structural log templates, search boxes, and financial metrics.
+* **Efficiency (`#00FF41`):** Matrix Green. Used for compressed artifacts, active processing indicators, and GreenOps/Carbon metrics.
+
+### **Typography**
+* **UI Elements:** `Inter` (Sans-serif) for generic readable text (buttons, standard labels).
+* **Data & Telemetry:** `JetBrains Mono` for all logs, hex codes, rules, and numerical counters.
+
+### **Global Layout Lock**
+* `width: 100vw; height: 100vh; overflow: hidden !important;`
+* The grid is strictly divided into three rows: `60px` (Header), `1fr` (Main Arena), `140px` (Scoreboard).
+
+---
+
+# 🖥️ 2. COMPONENT ARCHITECTURE & INTERACTION STATES
+
+## A. The Header (`<header>`)
+* **Location:** Fixed at the top, 60px height, border-bottom `Waste/30`.
+* **Left Element - Logo:** Reads `FR▲CTAL` with tracking set to `0.2em`. The triangle (`▲`) is colored **Waste** (Red).
+* **Center Element - Edge Status:** A bordered box reading `[ WASM CORE ONLINE ]` in Cyan.
+    * *Animation:* Contains a tiny 2px **Efficiency** (Green) dot that pulses endlessly (`animate-pulse`) to prove the V8 WebAssembly engine is mounted and waiting.
+* **Right Element - Author Tag:** Reads `Team Shashwat / SIES GST` in tiny, 10px uppercase mono.
+
+---
+
+## B. The Command Module (Global Inputs)
+* **Location:** Absolute positioned at `top-2 right-4` (floating inside the Header area on the right).
+* **Component 1: Search Input**
+    * *Default State:* Cyan border, black background, placeholder `"Search Logic..."`.
+    * *Focus State:* Border glows Cyan (`focus:ring-1`).
+    * *Interaction:* Typed text triggers a 300ms debounce timer. If string length `>= 2`, it fires a `postMessage` to the Web Worker to search the compressed domain.
+* **Component 2: File Loader (`<input type="file">`)**
+    * *Default State:* A styled label reading `LOAD SHARD`. Cyan outline.
+    * *Hover State:* Background shifts to `bg-intelligence/10`.
+    * *Interaction:* Opens the OS file picker. When a file is selected, it primes the engine.
+* **Component 3: Execution Button**
+    * *State 1 (Ready):* Reads `RUN SIMULATION`. Cyan background, black text. Box-shadow glows Cyan.
+    * *State 2 (Processing):* Reads `PROCESSING...`. Button becomes disabled, opacity drops.
+    * *State 3 (Danger - Memory Wall):* If the browser's JS Heap exceeds ~800MB, the button turns **Waste** (Red), reads `MEMORY LOCK`, and disables itself to prevent a browser tab crash.
+
+---
+
+## C. The Active Ingestion HUD (`progress` state)
+* **Location:** Drops down from the top-center (`top-12 left-4 right-4`) *only* when `isStreaming === true`.
+* **Visuals:** A blurred (`backdrop-blur-sm`), semi-transparent Void panel with a Red (`Waste`) border and a soft red glow.
+* **Data Points (Real-Time):**
+    * **Percentage:** `[ 45.2% ]`
+    * **Ingest Rate:** Live `MB/s` calculation based on chunk processing speed.
+    * **ETA:** `[ 12s ]` remaining.
+    * **Progress Bar:** A horizontal bar filling from left to right in neon Red, mapping to the percentage.
+* **Interaction:** Purely read-only. Disappears automatically the moment the Web Worker fires `PROCESS_COMPLETE`.
+
+---
+
+## D. The Main Arena (The 3-Column Grid)
+Takes up all remaining vertical space. Bordered by `Waste/30` lines.
+
+### Column 1: The Flood (`CanvasMatrixRain.tsx`)
+* **Purpose:** Visualizes raw, chaotic data entering the system.
+* **Default State:** A dark void. Top-left label reads `/ / The Flood` in dim red.
+* **Active State (`isStreaming`):** * Red hexadecimal and ASCII characters cascade down the screen like the Matrix.
+    * A label appears reading `INBOUND STREAM: 1.25 GB/s` (jittering slightly for effect).
+    * *Performance:* Runs on HTML5 Canvas `requestAnimationFrame` to maintain 60FPS without React re-renders.
+
+### Column 2: Schema Induction (`SchemaConsole.tsx`)
+* **Purpose:** Shows the Rust engine stripping chaos and discovering structural templates.
+* **Default State:** Shows a spinning red loading circle and reads `Waiting for Ingest Stream...`.
+* **Active State:** Populates with a list of rules (`RULE_001`, `RULE_002`, etc.).
+    * *Interaction (Hover):* Hovering over a rule row causes its left-border to transition from Cyan to Green, highlighting the item.
+    * *Visuals:* Replaces high-entropy variables with three solid blocks `███` to prove the FSLP grammar induction is working.
+
+### Column 3: The Trickle (`TheTrickleStream.tsx` - Projective Data Grid)
+* **Purpose:** The analytical search readout. 
+* **Default State:** Empty, reads `Awaiting Query...` with a faded magnifying glass icon.
+* **Search Active State (Matches Found):**
+    * **Header:** Displays `RULE_XXX` and `TOTAL MATCHES` in Cyan.
+    * **Body:** A scrollable list of reconstructed logs.
+    * **Data Block UI:** Each match is a dark card with a Red border. It displays the `ROW_IDX` and a glowing Red `+XXms DELTA` tag. Below that, the actual string text is rendered, with missing variables injected as a pulsing red `[VAR_OMITTED]` badge.
+    * **Fail Safe:** Truncates at 100 results visually to prevent the DOM from lagging, displaying a dashed-border warning at the bottom.
+
+---
+
+## E. The Telemetry Scoreboard (`Scoreboard.tsx`)
+* **Location:** Fixed at the bottom, 140px height. Contains 3 columns.
+* **Left Column - The Bars:** * Top Bar (GZIP): Fills to 100% in Red.
+    * Bottom Bar (FRACTAL): Fills only to the compressed percentage in Green.
+    * Multiplier: A huge Cyan number using `react-countup` (e.g., `85.4x Efficiency`).
+* **Center Column - SaaS Arbitrage:**
+    * Displays the financial impact.
+    * *Animation:* When actively streaming, the number pulses and aggressively ticks upward. When finished, it settles on a massive formatted USD amount (e.g., `$1,250,000`).
+* **Right Column - GreenOps Carbon Offset:**
+    * Displays the environmental impact in Green.
+    * Shows `kg/yr` of Atmospheric Carbon Reduction.
+
+---
+
+## F. The Operation Finalized Modal (`ReportCardModal.tsx`)
+* **Trigger:** 500ms after the Web Worker finishes processing the final chunk and `isStreaming` becomes false.
+* **Animation:** The background goes 90% opaque Void with a heavy `backdrop-blur-md`. The modal slides in from opacity 0 to 100 over 700ms.
+* **Visuals:** A massive 650px wide slate box with a Cyan box-shadow (`shadow-[0_0_50px_rgba(0,243,255,0.3)]`). A subtle laser scan-line (`animate-scan`) sweeps down the background of the modal constantly.
+* **Data Displayed:**
+    * Source Payload (Waste): e.g., `712.50 MB` (Red).
+    * Induced Domain (FRACTAL): e.g., `8.20 MB` (Green).
+    * Massive center readout of the `Reduction Ratio`.
+* **User Actions:**
+    * **Action 1 (Download Artifact):** A glowing Green button. Clicking this tells the Web Worker to execute `export_compressed_archive()`, converting the WASM array into an `application/octet-stream` Blob, and forcing the browser to download `sentinel_shard_12345.fractal` to the user's hard drive.
+    * **Action 2 ([ Terminate ]):** A Red outline button. Clicking this sets `isDismissed` to true, fading the modal out and returning the user to the God Mode dashboard to analyze the data grid.
+
+---
+
+# 🕹️ 3. INTERACTION MATRICES (THE UX FLOW)
+
+Here are the exact state changes mapped across the three primary user journeys.
+
+### Flow 1: The Idle State (0s)
+1. User loads page. WASM compiles in background.
+2. `[ WASM CORE ONLINE ]` pulses green. 
+3. Matrix Rain is black/empty. 
+4. Schema Console says "Waiting...". 
+5. Scoreboard reads $0 and 0x Efficiency.
+
+### Flow 2: The Ingestion Event (User clicks 'Run Simulation')
+1. Button changes to "Processing..." and disables.
+2. Web Worker receives `BOOT` and begins 10MB chunk loops.
+3. **Top:** Red Progress HUD drops down. ETA counts down.
+4. **Col 1:** Matrix Rain starts falling aggressively.
+5. **Col 2:** Schema Console begins populating with `RULE_001`, `RULE_002` fading in from the left (`animate-in fade-in slide-in-from-left`).
+6. **Bottom:** Scoreboard numbers start rolling up like a slot machine.
+
+### Flow 3: The Analysis Event (User types "Timeout" into Search)
+*(Assume Ingestion is complete and Modal has been dismissed)*
+1. User types "T", "i" -> (Length < 2, nothing happens).
+2. User types "m" -> Debounce timer waits 300ms.
+3. Web Worker scans the LZ4 columnar dictionaries.
+4. **Col 3 (The Trickle):** Instantly populates with 42 matching cards.
+5. The user scrolls the grid, viewing the `+ms DELTA` tags to trace the exact millisecond timeline of the cascading Timeout errors.

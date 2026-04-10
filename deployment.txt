@@ -1,0 +1,41 @@
+Here is the complete **Zero-Cost Deployment Strategy** for the FRACTAL (Sentinel Protocol) architecture. 
+
+The entire system was explicitly designed as an **Edge-Native JAMstack** application. By shifting the heavy computational burden away from centralized cloud servers and directly onto the user's local device, the architecture perfectly exploits the free tiers of modern hosting platforms.
+
+Here is the exact breakdown of how to deploy and run this enterprise-grade log compression engine for **$0.00/month**.
+
+---
+
+### 1. The Compute Layer: The User's Browser (Cost: $0.00)
+The most expensive part of any data-processing application is the CPU time required to crunch a 700 MB file. 
+* **The Strategy:** Instead of paying AWS or Google Cloud for heavy EC2 instances to run the FRACTAL algorithms, the pure-Rust compute layer is compiled into WebAssembly (WASM). 
+* **The Execution:** The heavy lifting (Fixed-Depth Tree routing, FSLP Grammar Induction, and LZ4 compression) is executed entirely by the user's local CPU via a background Web Worker in their browser. 
+* **The Result:** You get unlimited compute scaling for free. Whether 1 user or 10,000 users upload a 700 MB log file simultaneously, your server compute cost remains exactly zero.
+
+### 2. Frontend Hosting & Routing: Vercel Free Tier (Cost: $0.00)
+Vercel is the native hosting platform for Next.js and provides a highly generous "Hobby" free tier perfectly suited for this architecture.
+* **The Strategy:** The Next.js UI, the Cyberpunk styling, the Matrix Canvas, and the routing logic are deployed to Vercel's global Edge Network.
+* **The WASM Bypass:** Vercel's serverless functions have a strict 50 MB deployment limit and often crash when trying to bundle WebAssembly. We bypassed this by placing the `sentinel_protocol_core_bg.wasm` binary directly into the `/public/wasm/` directory. Vercel treats it as a static asset (like an image) and serves it via their free CDN, completely avoiding Server-Side Rendering (SSR) panics.
+
+### 3. Database & Telemetry: Supabase Free Tier (Cost: $0.00)
+While the 700 MB file stays strictly on the user's machine, the project needs a way to track the global "GreenOps" impact (dollars and carbon saved).
+* **The Strategy:** FRACTAL uses Supabase, an open-source Firebase alternative powered by PostgreSQL, which offers a free tier supporting up to 500MB of database space and 2GB of bandwidth.
+* **The Metadata-Only Payload:** To ensure you never hit Supabase's bandwidth or storage limits, the `/api/ingest` route **never** uploads the actual log data. When the Web Worker finishes compressing a file, it only sends a tiny JSON payload containing three integers/strings: `{ originalSize, compressedSize, hash }`.
+* **The Result:** Because you are only storing microscopic metadata rows in the `schema_registry` table, you can process millions of log shards globally before ever coming close to Supabase's free tier limits.
+
+### 4. CI/CD Pipeline: GitHub Actions (Cost: $0.00)
+You need an automated way to compile the Rust code into WebAssembly every time you push an update, without paying for build servers.
+* **The Strategy:** The `.github/workflows/deploy.yml` file utilizes GitHub Actions (which is completely free for public repositories, and provides 2,000 free build minutes/month for private ones).
+* **The Execution:** When you push to the `main` branch, GitHub boots an `ubuntu-latest` runner, installs the Rust toolchain, and installs `wasm-pack`. It compiles the FRACTAL core, pipes the output to the `frontend/public/` folder, and then hands the modernized codebase over to Vercel for the final UI deployment.
+
+---
+
+### Summary of the Zero-Cost Architecture
+| Service Layer | Provider | Usage | Monthly Cost |
+| :--- | :--- | :--- | :--- |
+| **Data Processing (CPU)** | The User's Local Hardware | WASM / Web Worker Execution | **$0.00** |
+| **Frontend Hosting (CDN)** | Vercel (Hobby Tier) | Next.js App Router & Static WASM | **$0.00** |
+| **Database (PostgreSQL)** | Supabase (Free Tier) | Metadata-only Telemetry Storage | **$0.00** |
+| **CI/CD Build Pipeline** | GitHub Actions | Rust -> WASM Compilation | **$0.00** |
+
+By weaponizing WebAssembly and strictly adhering to the Edge-Compute paradigm, you have built a highly advanced, enterprise-grade architecture that is entirely insulated from cloud provider billing traps.

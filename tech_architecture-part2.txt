@@ -1,0 +1,69 @@
+Here is **Part 2** of the definitive FRACTAL (Sentinel Protocol) Technical Architecture. 
+
+This section dives into the **Core Rust Engine**—the mathematical heart of the system where the actual log parsing, grammar induction, and columnar compression take place inside the WebAssembly sandbox.
+
+---
+
+# 🧠 4. TECH ARCHITECTURE PART 2: THE ROUTING & PARSING ENGINE (DRAIN)
+Once the JavaScript Web Worker pipes the 10MB chunk of text into the Rust memory space, the engine must make sense of the unstructured strings. It uses the **Drain Algorithm** (Online Log Parsing with a Fixed-Depth Tree).
+
+### Step 1: Tokenization & The Prefix Tree
+* Every incoming log line is split into an array of tokens by whitespace.
+* The engine drops these tokens into a **Fixed-Depth Parse Tree**. Because the depth of the tree is strictly fixed (unlike a standard Trie that grows infinitely deep), the search time is bounded and incredibly fast, which is critical for hitting high MB/s ingestion rates.
+
+### Step 2: Template Extraction
+* The tree routes the log to a leaf node containing similar logs. It compares the new log against existing templates using a similarity threshold (set to `0.4` or 40%).
+* If a match is found, the engine identifies which tokens are static (the structure) and which are dynamic (the variables).
+* **Example:** `User shashwat failed to login from 192.168.1.1` becomes Template: `User <*> failed to login from <*>` and Variables: `["shashwat", "192.168.1.1"]`.
+
+### Step 3: The LRU Pruning Valve (Memory Safety)
+* **The Problem:** In a browser, storing an infinite number of templates will eventually hit the WebAssembly 32-bit memory ceiling and crash the tab.
+* **The Engineered Solution:** The Rust core enforces a `MAX_TEMPLATES = 2000` hard limit. If the engine discovers a 2,001st unique log structure, it executes a Least Recently Used (LRU) pruning operation, silently deleting the oldest 50% of the dictionary to free up RAM while continuing to process the stream.
+
+---
+
+# 🧬 5. THE GRAMMAR INDUCTION ENGINE (FSLP) & ENTROPY BYPASS
+Once the log is parsed into a Template ID and an array of Variables, the engine attempts to compress the structure using **Forest Straight-Line Programs (FSLP)**.
+
+### The FSLP Schema Registry
+* The engine looks at the sequence of log templates. If it sees `Template A` followed by `Template B` repeatedly, it induces a new mathematical grammar rule (e.g., `Rule C = A + B`). 
+* This recursive hierarchical induction allows FRACTAL to compress highly repetitive server logs down to fractions of their original size.
+* Similar to the Drain tree, the `SchemaRegistry` is capped at `MAX_FSLP_RULES = 5000`. Once hit, the dictionary is flushed to the final archive to protect the browser's memory.
+
+### The Entropy Bypass Circuit (The Optimization)
+* **The Problem:** Grammar induction is computationally expensive. If the parsed variables contain highly chaotic, randomized strings (like UUIDs or encrypted authentication tokens), the FSLP engine will spin out, burning CPU cycles trying to find mathematical patterns in pure chaos.
+* **The Engineered Solution:** FRACTAL implements a custom Shannon-style **Entropy Checker**. 
+* Before a variable is sent to the FSLP engine, Rust calculates its unique-character ratio. If the variable is >75% unique characters, the engine **bypasses the grammar induction entirely**. It labels the data as "high-entropy waste" and routes it straight to the columnar packer. This saves massive amounts of compute time.
+
+---
+
+# 🗄️ 6. COLUMNAR LOG PARTITIONING (CLP) & COMPRESSION
+With the grammar induced and the variables separated, the data must be packed for the final `.fractal` artifact. FRACTAL utilizes the **CLP (Columnar Log Partitioning)** architecture.
+
+### The Packing Strategy
+Instead of storing logs row-by-row, FRACTAL pivots the data 90 degrees and stores it column-by-column:
+1.  **Rule IDs:** A contiguous array of `u32` integers representing the structural templates.
+2.  **Temporal Deltas:** A contiguous array of `i64` integers representing the exact millisecond time gap between each log event.
+3.  **Variables:** The engine attempts to cast all variables to `f64` (IEEE-754 64-bit floats). Pure strings that cannot be cast to floats are deliberately discarded to achieve the extreme 100x compression ratios.
+
+### The Final Squeeze (LZ4-Flex)
+Once the columns are batched, the raw bytes are passed through `lz4_flex`, a pure-Rust implementation of the LZ4 compression algorithm. Because similar data (like columns of timestamps) compresses significantly better than mixed data (rows of raw text), LZ4 shrinks the columnar batch down to a microscopic footprint. This is the exact artifact that is downloaded when the user clicks "Download Artifact" in the UI.
+
+---
+
+# 🔍 7. PROJECTIVE DATA RETRIEVAL (THE SEARCH ENGINE)
+The ultimate triumph of the CLP architecture is that **you do not need to decompress the archive to search it**.
+
+When the user types a query like `"Timeout"` into the UI:
+1.  **Template Lookup:** Rust checks the `DrainTree` to see if `"Timeout"` exists in any of the known structural templates. (e.g., it finds it in `RULE_042: Connection Timeout on port <*>`).
+2.  **Columnar Scan:** Rust jumps directly to the compressed `Rule IDs` column. Because it is a uniform array of integers, it scans it at blistering speeds, looking strictly for the number `42`.
+3.  **Data Extraction:** Every time it hits `42`, it grabs the `row_index` and looks across to the `Temporal Deltas` column to grab the exact millisecond offset.
+4.  **Reconstruction:** Rust bundles the template string, the row indexes, and the time deltas into a `SearchResultSet` JSON object and passes it back across the WASM boundary to the React UI.
+5.  **UI Rendering:** The React component (`TheTrickleStream.tsx`) iterates over the hits, dynamically re-injecting the `[VAR_OMITTED]` tags where the chaotic data used to be, and displays a perfect, analytical Data Grid of the events.
+
+---
+
+### **Summary of the Complete Flow:**
+The 700MB file is ingested via a Next.js **Web Worker** stream -> Memory pointers pass it to **WASM** -> **Drain** parses the structure and drops chaotic variables -> **Entropy Bypass** protects the CPU -> **FSLP** induces recursive grammar -> **CLP** packs the integers into columns -> **LZ4** compresses it into a tiny footprint -> The UI performs **Projective Search** directly on the compressed domain without ever touching a cloud server. 
+
+This completes the FRACTAL architecture.

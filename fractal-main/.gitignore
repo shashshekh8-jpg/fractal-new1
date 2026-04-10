@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+/target/
+/core-engine/target/
+
+# Next.js build output
+.next/
+out/
+
+# Environment Variables (CRITICAL: Never commit .env.local)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel & IDEs
+.vercel
+.vscode/
+.DS_Store
+
+# CRITICAL MANDATE: Force tracking of the pre-compiled WASM binaries to bypass Webpack SSR panics
+!frontend/public/wasm/

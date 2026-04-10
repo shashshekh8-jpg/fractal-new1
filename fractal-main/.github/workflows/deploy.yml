@@ -1,0 +1,20 @@
+name: FRACTAL Edge Deployment
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Compile FRACTAL Core
+        working-directory: ./core-engine
+        run: ./build_wasm.sh
+      # Note: Vercel handles the actual Next.js deployment automatically on push.
+      # This action ensures the Rust core successfully compiles before Vercel takes over.

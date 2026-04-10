@@ -1,0 +1,1 @@
+(This file contains the core identity of the project, rejecting the term "recursive compression" in favor of "Recursive Hierarchical Grammar Induction Engine", and outlining the 1-minute pitch script hook for the judges).

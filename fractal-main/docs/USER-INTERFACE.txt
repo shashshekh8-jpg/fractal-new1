@@ -1,0 +1,1 @@
+(This file contains the strict "God Mode" UI mandates: the 100vh non-scrolling grid, the Void/Waste/Intelligence/Efficiency semantic palette, JetBrains Mono typography requirements, and the Report Card modal slide-in choreography).
