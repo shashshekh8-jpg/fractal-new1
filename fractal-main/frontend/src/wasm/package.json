@@ -1,0 +1,15 @@
+{
+  "name": "sentinel_protocol_core",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "sentinel_protocol_core_bg.wasm",
+    "sentinel_protocol_core.js",
+    "sentinel_protocol_core.d.ts"
+  ],
+  "main": "sentinel_protocol_core.js",
+  "types": "sentinel_protocol_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
