@@ -21,9 +21,6 @@ export default function Page() {
                     <span className="text-[10px] tracking-widest text-intelligence uppercase">[ WASM CORE ONLINE ]</span>
                 </div>
             </div>
-            <div className="text-efficiency font-mono text-[10px] text-right uppercase leading-tight tracking-widest opacity-80">
-                Team Shashwat<br/>Shashwat Shekhar
-            </div>
         </header>
 
         <section className="relative w-full h-full overflow-hidden">
