@@ -12,14 +12,6 @@ export class FractalEngine {
         wasm.__wbg_fractalengine_free(ptr, 0);
     }
     /**
-     * @param {number} size
-     * @returns {number}
-     */
-    alloc_buffer(size) {
-        const ret = wasm.fractalengine_alloc_buffer(this.__wbg_ptr, size);
-        return ret >>> 0;
-    }
-    /**
      * @returns {Uint8Array}
      */
     export_compressed_archive() {
@@ -62,20 +54,24 @@ export class FractalEngine {
             throw takeFromExternrefTable0(ret[0]);
         }
     }
-    constructor() {
-        const ret = wasm.fractalengine_new();
+    /**
+     * @param {Uint8Array} chunk
+     * @returns {any}
+     */
+    ingest_chunk(chunk) {
+        const ptr0 = passArray8ToWasm0(chunk, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.fractalengine_ingest_chunk(this.__wbg_ptr, ptr0, len0);
+        return ret;
+    }
+    /**
+     * @param {number} expected_size
+     */
+    constructor(expected_size) {
+        const ret = wasm.fractalengine_new(expected_size);
         this.__wbg_ptr = ret >>> 0;
         FractalEngineFinalization.register(this, this.__wbg_ptr, this);
         return this;
-    }
-    /**
-     * @param {number} size
-     * @param {boolean} is_final_chunk
-     * @returns {any}
-     */
-    process_shared_buffer(size, is_final_chunk) {
-        const ret = wasm.fractalengine_process_shared_buffer(this.__wbg_ptr, size, is_final_chunk);
-        return ret;
     }
     /**
      * @param {string} query
@@ -90,14 +86,6 @@ export class FractalEngine {
 }
 if (Symbol.dispose) FractalEngine.prototype[Symbol.dispose] = FractalEngine.prototype.free;
 
-/**
- * @returns {any}
- */
-export function get_wasm_memory() {
-    const ret = wasm.get_wasm_memory();
-    return ret;
-}
-
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -111,10 +99,6 @@ function __wbg_get_imports() {
             const len1 = WASM_VECTOR_LEN;
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
-        },
-        __wbg___wbindgen_memory_73fdd881ebd2e7a3: function() {
-            const ret = wasm.memory;
-            return ret;
         },
         __wbg___wbindgen_throw_81fc77679af83bc6: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));

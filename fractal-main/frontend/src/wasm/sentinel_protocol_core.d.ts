@@ -4,34 +4,29 @@
 export class FractalEngine {
     free(): void;
     [Symbol.dispose](): void;
-    alloc_buffer(size: number): number;
     export_compressed_archive(): Uint8Array;
     export_ui_stream(): Uint8Array;
     get_discovered_templates(): any;
     get_final_archive_size(): number;
     import_compressed_archive(data: Uint8Array): void;
-    constructor();
-    process_shared_buffer(size: number, is_final_chunk: boolean): any;
+    ingest_chunk(chunk: Uint8Array): any;
+    constructor(expected_size: number);
     search_compressed_domain(query: string): any;
 }
-
-export function get_wasm_memory(): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_fractalengine_free: (a: number, b: number) => void;
-    readonly fractalengine_alloc_buffer: (a: number, b: number) => number;
     readonly fractalengine_export_compressed_archive: (a: number) => [number, number];
     readonly fractalengine_export_ui_stream: (a: number) => [number, number];
     readonly fractalengine_get_discovered_templates: (a: number) => any;
     readonly fractalengine_get_final_archive_size: (a: number) => number;
     readonly fractalengine_import_compressed_archive: (a: number, b: number, c: number) => [number, number];
-    readonly fractalengine_new: () => number;
-    readonly fractalengine_process_shared_buffer: (a: number, b: number, c: number) => any;
+    readonly fractalengine_ingest_chunk: (a: number, b: number, c: number) => any;
+    readonly fractalengine_new: (a: number) => number;
     readonly fractalengine_search_compressed_domain: (a: number, b: number, c: number) => any;
-    readonly get_wasm_memory: () => any;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

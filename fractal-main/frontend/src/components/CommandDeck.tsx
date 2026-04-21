@@ -84,19 +84,25 @@ export default function CommandDeck() {
             </div>
 
             <div className="grid grid-cols-[1fr_1.5fr_1fr] h-full border-b border-waste/30 w-full overflow-hidden">
-                <div className="border-r border-waste/30 relative">
+                <div className="border-r border-waste/30 relative min-h-0">
                     <div className="absolute top-2 left-2 text-[10px] text-waste/50 font-mono tracking-widest uppercase z-10">/ / The Flood</div>
                     <CanvasMatrixRain isProcessing={isStreaming} />
                 </div>
 
-                <div className="relative bg-void/40 overflow-hidden">
+                <div className="relative bg-void/40 overflow-hidden min-h-0">
                     <div className="absolute top-2 left-2 text-[10px] text-intelligence/50 font-mono tracking-widest uppercase z-10">/ / Schema Induction</div>
                     <SchemaConsole templates={templates || []} />
                 </div>
 
-                <div className="border-l border-waste/30 relative">
-                    <div className="absolute top-2 left-2 text-[10px] text-efficiency/50 font-mono tracking-widest uppercase z-10">/ / The Trickle</div>
-                    <TheTrickleStream wasmBuffer={hexStream} searchResult={searchResult} />
+                {/* THE FIX IS HERE: CSS Grid locks are implemented below to force scrollbars */}
+                <div className="border-l border-waste/30 relative flex flex-col min-h-0">
+                    <div className="absolute top-2 left-2 text-[10px] text-efficiency/50 font-mono tracking-widest uppercase z-20">/ / The Trickle</div>
+                    
+                    <div className="relative flex-grow h-full w-full overflow-hidden">
+                        <div className="absolute inset-0 pt-8">
+                            <TheTrickleStream wasmBuffer={hexStream} searchResult={searchResult} />
+                        </div>
+                    </div>
                 </div>
             </div>
             

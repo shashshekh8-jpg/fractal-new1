@@ -22,14 +22,21 @@ export const useFractal = () => {
         workerRef.current.onmessage = async (e) => {
             const { type, payload } = e.data;
             
-            if (type === 'BOOT_COMPLETE') setIsBooted(true);
+            if (type === 'INIT_COMPLETE') {
+                console.log("✅ WORKER BOOTED: WASM engine is ready.");
+                setIsBooted(true);
+            }
             
-            else if (type === 'CHUNK_PROCESSED') {
-                if (payload.topology.is_duplicate) {
+            else if (type === 'PROGRESS_UPDATE') {
+                // Algorithmic Honesty: Update metrics and topology in real-time
+                if (payload.topology?.is_duplicate) {
                     setTopology(prev => ({ ...prev, pulseTarget: payload.topology.target_rule_id }));
                 }
-                setTemplates(payload.templates);
-                setHexStream(payload.hexStream);
+                
+                // Only update templates if they are sent (respecting the UI throttle)
+                if (payload.templates) setTemplates(payload.templates);
+                if (payload.hexStream) setHexStream(payload.hexStream); 
+                
                 setMetrics(payload.metrics);
 
                 const processedBytes = payload.metrics.original;
@@ -48,8 +55,11 @@ export const useFractal = () => {
             }
             
             else if (type === 'PROCESS_COMPLETE') {
+                console.log("🏁 INGESTION COMPLETE.");
                 setIsStreaming(false);
                 setProgress(prev => ({ ...prev, percent: 100, etaSeconds: 0 }));
+                setHexStream(payload.finalStream);
+                setMetrics(payload.finalMetrics);
                 
                 try {
                     const hashBuffer = await crypto.subtle.digest('SHA-256', payload.finalStream);
@@ -65,7 +75,7 @@ export const useFractal = () => {
                         })
                     });
                 } catch (err) {
-                    console.error("Telemetry Sync Failed:", err);
+                    console.error("❌ Telemetry Sync Failed:", err);
                 }
             }
 
@@ -79,7 +89,7 @@ export const useFractal = () => {
             
             else if (type === 'SEARCH_RESULT') setSearchResult(payload);
             
-            else if (type === 'EXPORT_RESULT') {
+            else if (type === 'EXPORT_COMPLETE') {
                 const blob = new Blob([payload], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -90,9 +100,15 @@ export const useFractal = () => {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
             }
+
+            else if (type === 'ERROR') {
+                console.error("❌ Worker Threw Error:", payload);
+            }
         };
 
-        workerRef.current.postMessage({ type: 'BOOT' });
+        // Basic boot without size hint
+        workerRef.current.postMessage({ type: 'INIT' });
+        
         return () => workerRef.current?.terminate();
     }, []);
 
@@ -115,7 +131,14 @@ export const useFractal = () => {
 
     const processFileStream = useCallback(async (file: File) => {
         if (!isBooted) return;
-        
+
+        // PRE-ALLOCATION OPTIMIZATION: 
+        // Re-initialize the engine with the exact file size to prevent memory relocation decay.
+        workerRef.current?.postMessage({ 
+            type: 'INIT', 
+            payload: { expectedSize: file.size } 
+        });
+
         setIsStreaming(true);
         setTemplates([]);
         setMetrics({ original: 0, finalLz4: 0 });

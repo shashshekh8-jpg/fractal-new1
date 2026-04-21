@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 interface LogHit {
     row_index: number;
     temporal_delta: number;
+    variables: string[];
+    template: string; 
 }
 
 interface SearchResultSet {
@@ -25,11 +27,16 @@ export default function TheTrickleStream({ wasmBuffer, searchResult }: { wasmBuf
     }
 
     return (
-        <div className="w-full h-full bg-void flex flex-col font-mono relative">
-            <div className="bg-intelligence/10 border-b border-intelligence/30 p-3 flex justify-between items-center z-10">
+        // THE FIX: Added `overflow-hidden` here to enforce the height boundary
+        <div className="w-full h-full bg-void flex flex-col font-mono relative overflow-hidden">
+            
+            {/* The Header (Stays Fixed) */}
+            <div className="bg-intelligence/10 border-b border-intelligence/30 p-3 flex justify-between items-center z-10 shrink-0">
                 <div>
                     <div className="text-[9px] text-intelligence/60 tracking-widest uppercase mb-1">Target Schema Extracted</div>
-                    <div className="text-xs text-intelligence font-bold">RULE_{searchResult.rule_id.toString().padStart(3, '0')}</div>
+                    <div className="text-xs text-intelligence font-bold">
+                        {searchResult.rule_id === 0 ? searchResult.template.toUpperCase() : `RULE_${searchResult.rule_id.toString().padStart(3, '0')}`}
+                    </div>
                 </div>
                 <div className="text-right">
                     <div className="text-[9px] text-intelligence/60 tracking-widest uppercase mb-1">Occurrences Found</div>
@@ -37,6 +44,7 @@ export default function TheTrickleStream({ wasmBuffer, searchResult }: { wasmBuf
                 </div>
             </div>
 
+            {/* The Scrollable Area */}
             <div className="flex-grow overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {searchResult.hits.map((hit, i) => (
                     <div key={i} className="bg-void border border-waste/30 p-2 hover:border-waste transition-colors group">
@@ -47,12 +55,12 @@ export default function TheTrickleStream({ wasmBuffer, searchResult }: { wasmBuf
                             </span>
                         </div>
                         <div className="text-[11px] text-gray-300 leading-relaxed break-all">
-                             {searchResult.template.split('<*>').map((part, index, array) => (
+                             {hit.template.split('<*>').map((part, index, array) => (
                                 <span key={index}>
                                     {part}
                                     {index !== array.length - 1 && (
-                                        <span className="text-waste font-bold bg-waste/10 px-1 mx-1 animate-pulse">
-                                            [VAR_OMITTED]
+                                        <span className="text-intelligence font-bold bg-intelligence/10 border border-intelligence/30 px-1 mx-1">
+                                            {hit.variables && hit.variables[index] ? hit.variables[index] : '[VAR_OMITTED]'}
                                         </span>
                                     )}
                                 </span>
@@ -66,7 +74,9 @@ export default function TheTrickleStream({ wasmBuffer, searchResult }: { wasmBuf
                         Results truncated at 100 to maintain UI performance.
                     </div>
                 )}
-                <div className="h-10"></div>
+                
+                {/* Safe spacing at the bottom of the scroll */}
+                <div className="h-6 w-full shrink-0"></div>
             </div>
         </div>
     );
