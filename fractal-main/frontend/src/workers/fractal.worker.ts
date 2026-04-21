@@ -8,13 +8,17 @@ self.onmessage = async (e: MessageEvent) => {
 
     if (type === 'INIT') {
         try {
-            const wasm = await import('core-engine');
-            await wasm.default();
+            // THE VERCEL FIX: Import the local JS wrapper directly instead of 'core-engine'
+            const wasm = await import('../wasm/sentinel_protocol_core.js');
+            
+            // THE VERCEL FIX: Tell the engine to fetch the binary from the public static folder
+            await wasm.default('/wasm/sentinel_protocol_core_bg.wasm');
             
             engine = new wasm.FractalEngine(payload?.expectedSize || 0);
             isBooted = true;
             self.postMessage({ type: 'INIT_COMPLETE' });
         } catch (error) {
+            console.error("WASM Boot Error:", error);
             self.postMessage({ type: 'ERROR', payload: 'Failed to initialize WASM engine' });
         }
     } 
@@ -99,7 +103,7 @@ self.onmessage = async (e: MessageEvent) => {
          try {
              const archive = engine.export_compressed_archive();
              
-             // The bulletproof copy: sever the link to WASM memory
+             // THE OOM FIX: The bulletproof copy: sever the link to WASM memory
              const safeBuffer = new Uint8Array(archive.length);
              safeBuffer.set(archive);
              
