@@ -19,7 +19,6 @@
   },
 
   "dependencies": {
-    "core-engine": "file:../core-engine/pkg",
 
     "next": "14.1.0",
 
